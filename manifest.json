@@ -14,49 +14,49 @@
   "categories": ["productivity", "business", "utilities"],
   "icons": [
     {
-      "src": "icon-72x72.png",
+      "src": "icon.png",
       "sizes": "72x72",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-96x96.png", 
+      "src": "icon.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-128x128.png",
-      "sizes": "128x128", 
+      "src": "icon.png",
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-144x144.png",
+      "src": "icon.png",
       "sizes": "144x144",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-152x152.png",
+      "src": "icon.png",
       "sizes": "152x152",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-192x192.png",
+      "src": "icon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-384x384.png",
+      "src": "icon.png",
       "sizes": "384x384",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512x512.png",
+      "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -71,7 +71,7 @@
       "label": "YUKI Mobile Interface"
     },
     {
-      "src": "screenshot-desktop-1.png", 
+      "src": "screenshot-desktop-1.png",
       "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide",
@@ -86,20 +86,20 @@
       "url": "/?action=add-task",
       "icons": [
         {
-          "src": "shortcut-add.png",
+          "src": "icon.png",
           "sizes": "96x96",
           "type": "image/png"
         }
       ]
     },
     {
-      "name": "View Tasks", 
+      "name": "View Tasks",
       "short_name": "View Tasks",
       "description": "View all your tasks",
       "url": "/?action=view-tasks",
       "icons": [
         {
-          "src": "shortcut-view.png", 
+          "src": "icon.png",
           "sizes": "96x96",
           "type": "image/png"
         }
