@@ -7,26 +7,17 @@
     <title>YUKI - Your Ultimate Kaizen Interface</title>
     
     <!-- Favicon and Icons -->
-    <link rel="icon" type="image/png" href="/icon.png">
-    <link rel="shortcut icon" href="/icon.png">
-    <link rel="apple-touch-icon" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="57x57" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="60x60" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="72x72" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="76x76" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="114x114" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="120x120" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="144x144" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="shortcut icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
     
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2383e2">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="YUKI">
-    <meta name="msapplication-TileImage" content="/icon.png">
+    <meta name="msapplication-TileImage" content="icon.png">
     <meta name="msapplication-TileColor" content="#2383e2">
     
     <!-- Firebase SDK -->
@@ -258,6 +249,73 @@
 
         .install-button.hidden {
             display: none !important;
+        }
+
+        /* Floating PWA Install Button */
+        .pwa-install-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--bps-orange);
+            color: var(--white);
+            border: none;
+            padding: 16px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            box-shadow: 0 4px 20px rgba(234, 88, 12, 0.4);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            animation: pwaButtonSlideIn 0.5s ease-out;
+        }
+
+        .pwa-install-btn:hover {
+            background: var(--bps-orange-light);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(234, 88, 12, 0.5);
+        }
+
+        .pwa-install-btn.show {
+            display: flex;
+        }
+
+        .pwa-install-btn.installing {
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .pwa-install-btn .install-icon {
+            font-size: 16px;
+        }
+
+        @keyframes pwaButtonSlideIn {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pwaButtonSlideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .pwa-install-btn.hiding {
+            animation: pwaButtonSlideOut 0.3s ease-in forwards;
         }
 
         .section {
@@ -837,10 +895,6 @@
                     <span id="notification-icon">🔔</span>
                     <span id="notification-text">Click to Enable</span>
                 </div>
-                <button class="install-button hidden" id="installButton" onclick="YukiApp.installApp()">
-                    <span>📱</span>
-                    <span>Install App</span>
-                </button>
                 <button class="theme-toggle" onclick="YukiApp.toggleTheme()">
                     <span id="theme-icon">🌙</span>
                     <span id="theme-text">Dark</span>
@@ -905,6 +959,12 @@
             </form>
         </div>
     </div>
+
+    <!-- Floating PWA Install Button -->
+    <button class="pwa-install-btn" id="pwaInstallBtn">
+        <i class="fas fa-download install-icon"></i>
+        <span class="install-text">Install App</span>
+    </button>
     <!-- Delete Confirmation Modal -->
     <div id="delete-modal" class="modal">
         <div class="modal-content">
@@ -997,20 +1057,30 @@
 
         // PWA Install functionality yang diperbaiki
         let deferredPrompt;
-        let installButton;
+        let pwaInstallBtn;
 
         window.addEventListener('beforeinstallprompt', (e) => {
             console.log('📱 PWA Install prompt triggered');
             e.preventDefault();
             deferredPrompt = e;
-            showInstallButton();
+            showPWAInstallButton();
         });
 
-        function showInstallButton() {
+        function showPWAInstallButton() {
             console.log('👆 Showing PWA install button');
-            installButton = document.getElementById('installButton');
-            if (installButton) {
-                installButton.classList.remove('hidden');
+            pwaInstallBtn = document.getElementById('pwaInstallBtn');
+            if (pwaInstallBtn) {
+                pwaInstallBtn.classList.add('show');
+                pwaInstallBtn.addEventListener('click', installPWAApp);
+            }
+        }
+
+        function hidePWAInstallButton() {
+            if (pwaInstallBtn) {
+                pwaInstallBtn.classList.add('hiding');
+                setTimeout(() => {
+                    pwaInstallBtn.classList.remove('show', 'hiding');
+                }, 300);
             }
         }
 
@@ -1025,61 +1095,77 @@
                 return;
             }
 
-            // Untuk Chrome desktop, tampilkan button secara manual
-            const isChrome = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+            // Untuk desktop, tampilkan button secara manual setelah delay
             const isDesktop = window.innerWidth >= 1024;
             
-            if (isChrome && isDesktop && !deferredPrompt) {
-                console.log('💻 Chrome desktop detected, showing manual install button');
+            if (isDesktop && !deferredPrompt) {
+                console.log('💻 Desktop detected, showing manual install button');
                 setTimeout(() => {
-                    showInstallButton();
-                }, 2000);
+                    if (!deferredPrompt) { // Double check
+                        showPWAInstallButton();
+                    }
+                }, 3000);
             }
         }
 
-        async function installApp() {
+        async function installPWAApp() {
             console.log('📱 Install app clicked');
             
+            const installBtn = document.getElementById('pwaInstallBtn');
+            const installIcon = installBtn.querySelector('.install-icon');
+            const installText = installBtn.querySelector('.install-text');
+            
+            // Show loading state
+            installBtn.classList.add('installing');
+            installIcon.className = 'fas fa-spinner fa-spin install-icon';
+            installText.textContent = 'Installing...';
+            
             if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const result = await deferredPrompt.userChoice;
-                
-                if (result.outcome === 'accepted') {
-                    console.log('✅ User accepted PWA install');
-                    hideInstallButton();
-                } else {
-                    console.log('❌ User dismissed PWA install');
+                try {
+                    deferredPrompt.prompt();
+                    const result = await deferredPrompt.userChoice;
+                    
+                    if (result.outcome === 'accepted') {
+                        console.log('✅ User accepted PWA install');
+                        hidePWAInstallButton();
+                        showToast('YUKI berhasil diinstall! 🎉', 'success');
+                    } else {
+                        console.log('❌ User dismissed PWA install');
+                        // Reset button state
+                        installBtn.classList.remove('installing');
+                        installIcon.className = 'fas fa-download install-icon';
+                        installText.textContent = 'Install App';
+                    }
+                    
+                    deferredPrompt = null;
+                } catch (error) {
+                    console.error('Error during PWA install:', error);
+                    showToast('Gagal menginstall aplikasi', 'error');
+                    
+                    // Reset button state
+                    installBtn.classList.remove('installing');
+                    installIcon.className = 'fas fa-download install-icon';
+                    installText.textContent = 'Install App';
                 }
-                
-                deferredPrompt = null;
             } else {
                 // Fallback untuk browser yang tidak support beforeinstallprompt
-                const toast = document.createElement('div');
-                toast.className = 'toast toast-info show';
-                toast.innerHTML = `
-                    <div class="toast-content">
-                        ℹ️ Install YUKI: Buka menu browser → "Add to Home Screen" atau "Install App"
-                    </div>
-                `;
-                document.body.appendChild(toast);
+                showToast('Install YUKI: Buka menu browser → "Add to Home Screen" atau "Install App"', 'info');
+                
+                // Reset button state after showing instruction
                 setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => toast.remove(), 300);
-                }, 5000);
-            }
-        }
-
-        function hideInstallButton() {
-            if (installButton) {
-                installButton.classList.add('hidden');
+                    installBtn.classList.remove('installing');
+                    installIcon.className = 'fas fa-download install-icon';
+                    installText.textContent = 'Install App';
+                }, 2000);
             }
         }
 
         // Listen for successful PWA install
         window.addEventListener('appinstalled', () => {
             console.log('✅ PWA was installed successfully');
-            hideInstallButton();
+            hidePWAInstallButton();
             deferredPrompt = null;
+            showToast('YUKI berhasil diinstall! Cek desktop atau home screen Anda 🚀', 'success');
         });
 
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_Ab__bbSpHyMc__KsW2c5hVjkCBOKiEE9P2Pf789noK46EtOwuGIuhuS68wyHQfnS/exec'; // Ganti dengan URL Apps Script Anda
@@ -1536,7 +1622,6 @@
             return {
                 // Firebase-related functions
                 requestNotificationPermission: requestNotificationPermission,
-                installApp: installApp,
 
                 showSection: function (sectionId) {
                     const sections = document.querySelectorAll('.section');
@@ -1981,7 +2066,33 @@ Embrace the way of Kaizen! 改善
 
         document.addEventListener('DOMContentLoaded', function () {
             YukiApp.init();
+            
+            // Handle PWA shortcuts
+            handlePWAShortcuts();
         });
+
+        // Handle PWA shortcut URLs
+        function handlePWAShortcuts() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action');
+            
+            if (action === 'add-task') {
+                console.log('📱 PWA Shortcut: Opening Add Task');
+                // Wait for app to initialize then show add task
+                setTimeout(() => {
+                    YukiApp.showSection('add-task');
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }, 500);
+            } else if (action === 'view-tasks') {
+                console.log('📱 PWA Shortcut: Opening View Tasks');
+                setTimeout(() => {
+                    YukiApp.showSection('view-tasks');
+                    // Clear the URL parameter
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }, 500);
+            }
+        }
 
         console.log(`
 🔧 YUKI v2.0 Production with Firebase Developer Info:
