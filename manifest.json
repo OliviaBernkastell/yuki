@@ -67,13 +67,15 @@
       "src": "screenshot-mobile-1.png",
       "sizes": "375x812",
       "type": "image/png",
-      "form_factor": "narrow"
+      "form_factor": "narrow",
+      "label": "YUKI Mobile Interface"
     },
     {
       "src": "screenshot-desktop-1.png", 
       "sizes": "1280x800",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "YUKI Desktop Interface"
     }
   ],
   "shortcuts": [
@@ -85,7 +87,8 @@
       "icons": [
         {
           "src": "shortcut-add.png",
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
@@ -97,7 +100,8 @@
       "icons": [
         {
           "src": "shortcut-view.png", 
-          "sizes": "96x96"
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     }
@@ -106,5 +110,16 @@
   "prefer_related_applications": false,
   "edge_side_panel": {
     "preferred_width": 400
-  }
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "protocol_handlers": [
+    {
+      "protocol": "web+yuki",
+      "url": "/?task=%s"
+    }
+  ]
 }
