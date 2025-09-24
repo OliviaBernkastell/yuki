@@ -1177,6 +1177,7 @@
                 CUTOFF_HOUR: 16
             };
 
+            // ADD this to your state object
             let state = {
                 tasks: [],
                 currentPage: 1,
@@ -1188,22 +1189,33 @@
                 connectionStatus: 'disconnected',
                 notificationPermission: 'default',
                 firebaseStatus: 'loading',
-                fcmToken: null
+                fcmToken: null,
+                swRegistration: null // ADD THIS LINE
             };
 
             // Firebase Setup for GitHub Pages
+            // COMPLETE FIREBASE SECTION REPLACEMENT
+            // Replace the entire setupFirebaseForGitHubPages function and requestNotificationPermission function in your code
+
+            // Firebase Setup for GitHub Pages - FIXED VERSION
             async function setupFirebaseForGitHubPages() {
                 console.log('🔥 Setting up Firebase for GitHub Pages...');
                 updateFirebaseStatus('loading');
+
                 try {
                     if ('serviceWorker' in navigator) {
-                        console.log('📝 Registering service worker at /yuki/firebase-messaging-sw.js with scope /yuki/');
+                        console.log('📋 Registering service worker at /yuki/firebase-messaging-sw.js with scope /yuki/');
+
+                        // Register service worker
                         const registration = await navigator.serviceWorker.register('/yuki/firebase-messaging-sw.js', {
                             scope: '/yuki/'
                         });
                         console.log('✅ Service Worker registered:', registration.scope);
-                        messaging.useServiceWorker(registration);
 
+                        // Wait for service worker to be ready
+                        await navigator.serviceWorker.ready;
+
+                        // Set up foreground message handler - MOVED HERE
                         messaging.onMessage((payload) => {
                             console.log('📨 Foreground message received:', payload);
                             const { title, body } = payload.notification || {};
@@ -1217,9 +1229,13 @@
                             showToast(`${title}: ${body}`, 'info');
                         });
 
+                        // Store registration for later use
+                        state.swRegistration = registration;
+
                         updateFirebaseStatus('connected');
                         console.log('✅ Firebase messaging setup completed');
-                        return true;
+                        return registration;
+
                     } else {
                         throw new Error('Service Worker not supported');
                     }
@@ -1231,6 +1247,7 @@
                 }
             }
 
+            // FIXED requestNotificationPermission function
             async function requestNotificationPermission() {
                 try {
                     console.log('🔔 Requesting notification permission...');
@@ -1243,17 +1260,41 @@
 
                         if (state.firebaseStatus === 'connected') {
                             try {
-                                const token = await messaging.getToken({
+                                // Get service worker registration
+                                const registration = state.swRegistration || await navigator.serviceWorker.getRegistration('/yuki/');
+
+                                // FIXED: Use getToken with proper options
+                                const tokenOptions = {
                                     vapidKey: 'BJvQG9rKPVv6wPv4KmlTWGg7ndDsXoY1gotUjxvw4pEYbWmukouLBuM75P4c1khwRPsH6vkazWj-h8TLUVJMuB0'
-                                });
+                                };
+
+                                // Add service worker registration if available
+                                if (registration) {
+                                    tokenOptions.serviceWorkerRegistration = registration;
+                                    console.log('📋 Using service worker registration for token');
+                                }
+
+                                const token = await messaging.getToken(tokenOptions);
 
                                 if (token) {
                                     state.fcmToken = token;
-                                    console.log('🔑 FCM Token:', token);
-                                    console.log('📋 Copy this token for Firebase Console testing:', token);
+
+                                    // PROMINENT CONSOLE DISPLAY FOR TESTING
+                                    console.log('%c========================================', 'color: #2383e2; font-size: 16px; font-weight: bold;');
+                                    console.log('%c🔑 FCM TOKEN FOR TESTING:', 'color: #10b981; font-size: 14px; font-weight: bold;');
+                                    console.log('%c========================================', 'color: #2383e2; font-size: 16px; font-weight: bold;');
+                                    console.log('%c' + token, 'color: #f59e0b; font-size: 12px; background: #1f2937; padding: 5px; border-radius: 3px;');
+                                    console.log('%c========================================', 'color: #2383e2; font-size: 16px; font-weight: bold;');
+                                    console.log('%c📋 Copy the token above to Firebase Console > Cloud Messaging > Send test message', 'color: #9ca3af; font-size: 11px;');
+                                    console.log('%c🌐 Firebase Console: https://console.firebase.google.com/project/yuki-catatan-app/messaging', 'color: #6b7280; font-size: 10px;');
+                                    console.log('%c========================================', 'color: #2383e2; font-size: 16px; font-weight: bold;');
+
+                                    // Also display in a copyable format
+                                    console.log('Raw token (right-click to copy):');
+                                    console.log(token);
 
                                     await saveTokenToServer(token);
-                                    showToast('Notifikasi berhasil diaktifkan!', 'success');
+                                    showToast('Notifikasi berhasil diaktifkan! Check console for FCM token.', 'success');
                                 } else {
                                     console.warn('⚠️ No FCM token available');
                                     showToast('Tidak dapat mendapatkan token notifikasi', 'warning');
@@ -1278,6 +1319,8 @@
                     updateNotificationStatus();
                 }
             }
+
+
 
             async function saveTokenToServer(token) {
                 try {
