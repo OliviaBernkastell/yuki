@@ -1045,7 +1045,9 @@
 
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+            navigator.serviceWorker.register('./firebase-messaging-sw.js', {
+                scope: './'
+            })
                 .then((registration) => {
                     console.log('✅ Service Worker registered successfully:', registration);
                     messaging.useServiceWorker(registration);
@@ -1900,6 +1902,89 @@
                     state.customNotifications.splice(index, 1);
                     this.updateNotificationsList();
                     showToast('Notifikasi custom dihapus', 'info');
+                },
+
+                testGitHubPagesNotifications: async function() {
+                    console.log('🔍 Testing GitHub Pages PWA Notifications...');
+                    
+                    // Test 1: Basic notification support
+                    if (!('Notification' in window)) {
+                        console.error('❌ Notification API not supported');
+                        return;
+                    }
+                    
+                    // Test 2: Service Worker registration
+                    if ('serviceWorker' in navigator) {
+                        try {
+                            const registrations = await navigator.serviceWorker.getRegistrations();
+                            console.log('✅ Service Workers registered:', registrations.length);
+                            
+                            if (registrations.length === 0) {
+                                console.warn('⚠️ No service workers found. Registering...');
+                                const reg = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+                                console.log('✅ SW registered:', reg);
+                            }
+                        } catch (error) {
+                            console.error('❌ SW registration failed:', error);
+                        }
+                    }
+                    
+                    // Test 3: Firebase messaging check
+                    if (typeof messaging !== 'undefined') {
+                        try {
+                            const token = await messaging.getToken({
+                                vapidKey: 'BJvQG9rKPVv6wPv4KmlTWGg7ndDsXoY1gotUjxvw4pEYbWmukouLBuM75P4c1khwRPsH6vkazWj-h8TLUVJMuB0'
+                            });
+                            
+                            if (token) {
+                                console.log('✅ FCM Token obtained:', token.substring(0, 50) + '...');
+                                console.log('📋 Full FCM Token for testing:', token);
+                                
+                                // Show token in app for manual Firebase Console testing
+                                showToast(`FCM Token ready! Check console for testing token.`, 'success');
+                            } else {
+                                console.warn('⚠️ No FCM token available');
+                            }
+                        } catch (error) {
+                            console.error('❌ FCM token error:', error);
+                        }
+                    }
+                    
+                    // Test 4: Permission status
+                    console.log('🔔 Notification permission:', Notification.permission);
+                    
+                    // Test 5: Test local notification if permitted
+                    if (Notification.permission === 'granted') {
+                        console.log('✅ Testing local notification...');
+                        new Notification('YUKI PWA Test', {
+                            body: 'Notifications working on GitHub Pages!',
+                            icon: './icon.png',
+                            tag: 'test-notification'
+                        });
+                        
+                        // Test badge API
+                        if ('setAppBadge' in navigator) {
+                            navigator.setAppBadge(1);
+                            console.log('✅ App badge set');
+                        } else {
+                            console.log('ℹ️ App badge API not supported');
+                        }
+                    }
+                    
+                    // GitHub Pages specific info
+                    console.log('🌐 GitHub Pages Info:');
+                    console.log('  - Domain:', window.location.hostname);
+                    console.log('  - Protocol:', window.location.protocol);
+                    console.log('  - User Agent:', navigator.userAgent.substring(0, 100));
+                    
+                    // Instructions for manual testing
+                    console.log('\n📝 Manual Testing Instructions:');
+                    console.log('1. Copy FCM token from console above');
+                    console.log('2. Go to Firebase Console → Cloud Messaging');
+                    console.log('3. Click "Send test message"');
+                    console.log('4. Paste FCM token in "Add an FCM registration token"');
+                    console.log('5. Fill notification title/body and send');
+                    console.log('6. Check if notification appears on your device');
                 },
 
                 init: function () {
