@@ -1204,8 +1204,7 @@
                         
                         console.log('✅ Service Worker registered:', registration);
                         
-                        // Use the registered service worker for messaging
-                        messaging.useServiceWorker(registration);
+                        // REMOVED: messaging.useServiceWorker(registration); - deprecated in v10.7.1
                         
                         // Setup message handlers
                         messaging.onMessage((payload) => {
