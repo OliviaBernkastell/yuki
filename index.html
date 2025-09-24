@@ -5,12 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YUKI - Your Ultimate Kaizen Interface</title>
-    
+
     <!-- Favicon and Icons -->
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="shortcut icon" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#2383e2">
@@ -19,11 +19,11 @@
     <meta name="apple-mobile-web-app-title" content="YUKI">
     <meta name="msapplication-TileImage" content="icon.png">
     <meta name="msapplication-TileColor" content="#2383e2">
-    
+
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
-    
+
     <style>
         /* [SEMUA CSS YANG SAMA SEPERTI SEBELUMNYA] */
         * {
@@ -306,6 +306,7 @@
                 transform: translateX(100px);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
@@ -317,6 +318,7 @@
                 transform: translateX(0);
                 opacity: 1;
             }
+
             to {
                 transform: translateX(100px);
                 opacity: 0;
@@ -904,7 +906,8 @@
                     <span id="firebase-icon">🔥</span>
                     <span id="firebase-text">Loading...</span>
                 </div>
-                <div class="notification-status" id="notificationStatus" onclick="YukiApp.requestNotificationPermission()">
+                <div class="notification-status" id="notificationStatus"
+                    onclick="YukiApp.requestNotificationPermission()">
                     <span id="notification-icon">🔔</span>
                     <span id="notification-text">Click to Enable</span>
                 </div>
@@ -1091,14 +1094,14 @@
         function checkPWAInstallability() {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
             const isIOSStandalone = (window.navigator.standalone === true);
-            
+
             if (isStandalone || isIOSStandalone) {
                 console.log('PWA already installed or running in standalone mode');
                 return;
             }
 
             const isDesktop = window.innerWidth >= 1024;
-            
+
             if (isDesktop && !deferredPrompt) {
                 console.log('Desktop detected, showing manual install button');
                 setTimeout(() => {
@@ -1111,20 +1114,20 @@
 
         async function installPWAApp() {
             console.log('Install app clicked');
-            
+
             const installBtn = document.getElementById('pwaInstallBtn');
             const installIcon = installBtn.querySelector('.install-icon');
             const installText = installBtn.querySelector('.install-text');
-            
+
             installBtn.classList.add('installing');
             installIcon.className = 'fas fa-spinner fa-spin install-icon';
             installText.textContent = 'Installing...';
-            
+
             if (deferredPrompt) {
                 try {
                     deferredPrompt.prompt();
                     const result = await deferredPrompt.userChoice;
-                    
+
                     if (result.outcome === 'accepted') {
                         console.log('User accepted PWA install');
                         hidePWAInstallButton();
@@ -1135,19 +1138,19 @@
                         installIcon.className = 'fas fa-download install-icon';
                         installText.textContent = 'Install App';
                     }
-                    
+
                     deferredPrompt = null;
                 } catch (error) {
                     console.error('Error during PWA install:', error);
                     showToast('Gagal menginstall aplikasi', 'error');
-                    
+
                     installBtn.classList.remove('installing');
                     installIcon.className = 'fas fa-download install-icon';
                     installText.textContent = 'Install App';
                 }
             } else {
                 showToast('Install YUKI: Buka menu browser → "Add to Home Screen" atau "Install App"', 'info');
-                
+
                 setTimeout(() => {
                     installBtn.classList.remove('installing');
                     installIcon.className = 'fas fa-download install-icon';
@@ -1173,7 +1176,7 @@
                 REQUEST_TIMEOUT: 30000,
                 CUTOFF_HOUR: 16
             };
-            
+
             let state = {
                 tasks: [],
                 currentPage: 1,
@@ -1192,44 +1195,34 @@
             async function setupFirebaseForGitHubPages() {
                 console.log('🔥 Setting up Firebase for GitHub Pages...');
                 updateFirebaseStatus('loading');
-                
                 try {
-                    // Register service worker first
                     if ('serviceWorker' in navigator) {
-                        console.log('📝 Registering service worker...');
-                        
-                        const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js', {
-                            scope: './'
+                        console.log('📝 Registering service worker at /yuki/firebase-messaging-sw.js with scope /yuki/');
+                        const registration = await navigator.serviceWorker.register('/yuki/firebase-messaging-sw.js', {
+                            scope: '/yuki/'
                         });
-                        
-                        console.log('✅ Service Worker registered:', registration);
-                        
-                        // REMOVED: messaging.useServiceWorker(registration); - deprecated in v10.7.1
-                        
-                        // Setup message handlers
+                        console.log('✅ Service Worker registered:', registration.scope);
+                        messaging.useServiceWorker(registration);
+
                         messaging.onMessage((payload) => {
                             console.log('📨 Foreground message received:', payload);
                             const { title, body } = payload.notification || {};
-                            
                             if (Notification.permission === 'granted') {
                                 new Notification(title || 'YUKI Reminder', {
                                     body: body || 'You have a task reminder',
-                                    icon: './icon.png',
+                                    icon: '/yuki/icon.png',
                                     tag: 'yuki-task-reminder'
                                 });
                             }
-                            
                             showToast(`${title}: ${body}`, 'info');
                         });
-                        
+
                         updateFirebaseStatus('connected');
                         console.log('✅ Firebase messaging setup completed');
-                        
                         return true;
                     } else {
                         throw new Error('Service Worker not supported');
                     }
-                    
                 } catch (error) {
                     console.error('❌ Firebase setup failed:', error);
                     updateFirebaseStatus('failed');
@@ -1241,24 +1234,24 @@
             async function requestNotificationPermission() {
                 try {
                     console.log('🔔 Requesting notification permission...');
-                    
+
                     const permission = await Notification.requestPermission();
                     state.notificationPermission = permission;
-                    
+
                     if (permission === 'granted') {
                         console.log('✅ Notification permission granted');
-                        
+
                         if (state.firebaseStatus === 'connected') {
                             try {
                                 const token = await messaging.getToken({
                                     vapidKey: 'BJvQG9rKPVv6wPv4KmlTWGg7ndDsXoY1gotUjxvw4pEYbWmukouLBuM75P4c1khwRPsH6vkazWj-h8TLUVJMuB0'
                                 });
-                                
+
                                 if (token) {
                                     state.fcmToken = token;
                                     console.log('🔑 FCM Token:', token);
                                     console.log('📋 Copy this token for Firebase Console testing:', token);
-                                    
+
                                     await saveTokenToServer(token);
                                     showToast('Notifikasi berhasil diaktifkan!', 'success');
                                 } else {
@@ -1276,9 +1269,9 @@
                         console.warn('⚠️ Notification permission denied');
                         showToast('Izin notifikasi ditolak. Anda tidak akan menerima pengingat tugas.', 'warning');
                     }
-                    
+
                     updateNotificationStatus();
-                    
+
                 } catch (error) {
                     console.error('❌ Error requesting notification permission:', error);
                     showToast('Error meminta izin notifikasi: ' + error.message, 'error');
@@ -1300,10 +1293,10 @@
                 const statusEl = document.getElementById('firebaseStatus');
                 const iconEl = document.getElementById('firebase-icon');
                 const textEl = document.getElementById('firebase-text');
-                
+
                 state.firebaseStatus = status;
                 statusEl.classList.remove('connected', 'failed', 'loading');
-                
+
                 switch (status) {
                     case 'connected':
                         statusEl.classList.add('connected');
@@ -1330,9 +1323,9 @@
                 const statusEl = document.getElementById('notificationStatus');
                 const iconEl = document.getElementById('notification-icon');
                 const textEl = document.getElementById('notification-text');
-                
+
                 statusEl.classList.remove('enabled', 'disabled');
-                
+
                 switch (state.notificationPermission) {
                     case 'granted':
                         statusEl.classList.add('enabled');
@@ -1971,26 +1964,26 @@ Embrace the way of Kaizen! 改善
                             updateConnectionStatus('disconnected');
                             return;
                         }
-                        
+
                         console.log('✅ Script URL sudah diset');
                         const savedTheme = localStorage.getItem('yukiTheme') || 'dark';
                         this.setTheme(savedTheme);
                         setTodayDate();
-                        
+
                         // Setup Firebase for GitHub Pages
                         await setupFirebaseForGitHubPages();
-                        
+
                         // Check notification permission
                         state.notificationPermission = Notification.permission;
                         updateNotificationStatus();
-                        
+
                         // Check PWA installability
                         setTimeout(checkPWAInstallability, 1000);
-                        
+
                         loadTasks();
                         this.setupFormHandler();
                         this.setupKeyboardShortcuts();
-                        
+
                         console.log('✅ YUKI v2.0 with Firebase initialized successfully');
                         setTimeout(() => {
                             showToast('YUKI v2.0 with Firebase Ready! 🌸🔥📱', 'success');
@@ -2050,7 +2043,7 @@ Embrace the way of Kaizen! 改善
                                 { type: 'auto', percentage: 80, id: generateNotificationId() },
                                 ...state.customNotifications
                             ];
-                            
+
                             const taskData = {
                                 name: name,
                                 deadline: deadline.toISOString(),
@@ -2058,7 +2051,7 @@ Embrace the way of Kaizen! 改善
                                 notifications: JSON.stringify(allNotifications),
                                 fcmToken: state.fcmToken || ''
                             };
-                            
+
                             try {
                                 showToast('Menyimpan tugas baru...', 'info');
                                 const result = await apiCall('addTask', taskData);
@@ -2112,7 +2105,7 @@ Embrace the way of Kaizen! 改善
         function handlePWAShortcuts() {
             const urlParams = new URLSearchParams(window.location.search);
             const action = urlParams.get('action');
-            
+
             if (action === 'add-task') {
                 console.log('📱 PWA Shortcut: Opening Add Task');
                 setTimeout(() => {
