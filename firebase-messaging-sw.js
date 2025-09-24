@@ -1,4 +1,6 @@
-// firebase-messaging-sw.js - CORRECTED VERSION
+// Firebase Cloud Messaging Service Worker for YUKI
+// Place this file at: /yuki/firebase-messaging-sw.js
+
 // Import Firebase scripts
 importScripts(
   "https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"
@@ -7,7 +9,7 @@ importScripts(
   "https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"
 );
 
-// Firebase config - SAME AS YOUR MAIN APP
+// Firebase configuration (same as main app)
 const firebaseConfig = {
   apiKey: "AIzaSyBy1k5a9HWebDVKzXa7BpKaX1Rb_TBD-Wk",
   authDomain: "yuki-catatan-app.firebaseapp.com",
@@ -21,21 +23,26 @@ const firebaseConfig = {
 // Initialize Firebase in service worker
 firebase.initializeApp(firebaseConfig);
 
-// Get messaging instance
+// Initialize Firebase Messaging
 const messaging = firebase.messaging();
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
-  console.log("🔔 Background message received:", payload);
+  console.log(
+    "[firebase-messaging-sw.js] Received background message:",
+    payload
+  );
 
-  const notificationTitle = payload.notification?.title || "YUKI Task Reminder";
+  // Extract notification data
+  const notificationTitle = payload.notification?.title || "YUKI Notification";
   const notificationOptions = {
-    body: payload.notification?.body || "You have a task reminder",
+    body: payload.notification?.body || "You have a new notification",
     icon: "/yuki/icon.png",
     badge: "/yuki/icon.png",
-    tag: "yuki-task-reminder",
+    tag: "yuki-notification",
     data: {
-      url: "/yuki/", // URL to open when clicked
+      click_action: payload.data?.click_action || "/yuki/",
+      url: payload.data?.click_action || "/yuki/",
       ...payload.data,
     },
     actions: [
@@ -49,60 +56,115 @@ messaging.onBackgroundMessage((payload) => {
         title: "Dismiss",
       },
     ],
-    requireInteraction: true,
+    requireInteraction: false,
     silent: false,
   };
 
   // Show notification
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  return self.registration.showNotification(
+    notificationTitle,
+    notificationOptions
+  );
 });
 
 // Handle notification click
 self.addEventListener("notificationclick", (event) => {
-  console.log("🖱️ Notification click received:", event);
+  console.log("[firebase-messaging-sw.js] Notification click received:", event);
 
-  event.notification.close();
+  const notification = event.notification;
+  const action = event.action;
+  const clickAction = notification.data?.click_action || "/yuki/";
 
-  if (event.action === "dismiss") {
+  // Close notification
+  notification.close();
+
+  if (action === "dismiss") {
+    // Just close, do nothing
     return;
   }
 
-  // Open or focus YUKI app
+  // Handle click action (open or default click)
   event.waitUntil(
     clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         // Check if YUKI is already open
-        for (const client of clientList) {
-          if (client.url.includes("/yuki/") && "focus" in client) {
-            return client.focus();
-          }
+        const existingClient = clientList.find((client) => {
+          return client.url.includes("/yuki/") && "focus" in client;
+        });
+
+        if (existingClient) {
+          // Focus existing window
+          return existingClient.focus();
         }
 
-        // If not open, open new window
+        // Open new window
         if (clients.openWindow) {
-          return clients.openWindow("/yuki/");
+          return clients.openWindow(clickAction);
         }
       })
   );
 });
 
-// Handle push events (additional safety)
-self.addEventListener("push", (event) => {
-  if (event.data) {
-    console.log("📨 Push event received:", event.data.json());
+// Handle notification close
+self.addEventListener("notificationclose", (event) => {
+  console.log(
+    "[firebase-messaging-sw.js] Notification closed:",
+    event.notification.tag
+  );
+  // Optional: Track notification dismissals
+});
 
-    const payload = event.data.json();
-    const title = payload.notification?.title || "YUKI";
-    const options = {
-      body: payload.notification?.body || "Task reminder",
-      icon: "/yuki/icon.png",
-      badge: "/yuki/icon.png",
-      tag: "yuki-push",
-    };
+// Service Worker installation
+self.addEventListener("install", (event) => {
+  console.log("[firebase-messaging-sw.js] Service Worker installing...");
+  self.skipWaiting(); // Activate immediately
+});
 
-    event.waitUntil(self.registration.showNotification(title, options));
+// Service Worker activation
+self.addEventListener("activate", (event) => {
+  console.log("[firebase-messaging-sw.js] Service Worker activating...");
+  event.waitUntil(self.clients.claim()); // Take control immediately
+});
+
+// Handle fetch events (optional: for caching)
+self.addEventListener("fetch", (event) => {
+  // Only handle YUKI app requests
+  if (event.request.url.includes("/yuki/")) {
+    // You can add caching logic here if needed
+    console.log(
+      "[firebase-messaging-sw.js] Handling fetch for:",
+      event.request.url
+    );
   }
 });
 
-console.log("🔥 Firebase messaging service worker loaded successfully");
+// Handle push events (backup for FCM)
+self.addEventListener("push", (event) => {
+  console.log("[firebase-messaging-sw.js] Push event received:", event);
+
+  if (event.data) {
+    try {
+      const data = event.data.json();
+      const title = data.notification?.title || "YUKI";
+      const options = {
+        body: data.notification?.body || "New notification",
+        icon: "/yuki/icon.png",
+        badge: "/yuki/icon.png",
+        tag: "yuki-push",
+        data: data.data,
+      };
+
+      event.waitUntil(self.registration.showNotification(title, options));
+    } catch (error) {
+      console.error(
+        "[firebase-messaging-sw.js] Error parsing push data:",
+        error
+      );
+    }
+  }
+});
+
+console.log(
+  "[firebase-messaging-sw.js] Firebase Messaging Service Worker loaded successfully"
+);
