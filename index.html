@@ -213,6 +213,41 @@
             color: var(--warning);
         }
 
+        /* TEST NOTIFICATION BUTTON - NEW */
+        .test-notification-btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: 1px solid #f59e0b;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+
+        .test-notification-btn:hover {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        .test-notification-btn:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .test-notification-btn:active {
+            transform: translateY(0);
+        }
+
         .nav-buttons {
             display: flex;
             gap: 20px;
@@ -888,6 +923,19 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
+
+        /* Responsive untuk mobile */
+        @media (max-width: 768px) {
+            .test-notification-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+                gap: 4px;
+            }
+            
+            .app-controls {
+                gap: 8px;
+            }
+        }
     </style>
 </head>
 
@@ -911,6 +959,10 @@
                     <span id="notification-icon">🔔</span>
                     <span id="notification-text">Click to Enable</span>
                 </div>
+                <button class="test-notification-btn" onclick="YukiApp.testNotification()" title="Test Firebase Notification">
+                    <span id="test-icon">🧪</span>
+                    <span id="test-text">Test Notification</span>
+                </button>
                 <button class="theme-toggle" onclick="YukiApp.toggleTheme()">
                     <span id="theme-icon">🌙</span>
                     <span id="theme-text">Dark</span>
@@ -1047,6 +1099,10 @@
     </div>
 
     <script>
+        // Global variables
+        let messaging;
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyamQWF8b9JsdWyF6B9_JWyfK2UpR7WKOtCIDfUlabu6XYR-UvSpLStqoYLf5MZe9Wz/exec';
+
         // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBy1k5a9HWebDVKzXa7BpKaX1Rb_TBD-Wk",
@@ -1058,9 +1114,32 @@
             measurementId: "G-3DS20TBDY1"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const messaging = firebase.messaging();
+        // Wait for Firebase scripts to load
+        function initializeFirebase() {
+            return new Promise((resolve, reject) => {
+                if (typeof firebase === 'undefined') {
+                    console.error('Firebase SDK not loaded');
+                    reject(new Error('Firebase SDK not loaded'));
+                    return;
+                }
+
+                try {
+                    // Initialize Firebase - Check if already initialized
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                        console.log('Firebase initialized successfully');
+                    } else {
+                        console.log('Firebase already initialized, using existing app');
+                    }
+                    
+                    messaging = firebase.messaging();
+                    resolve(messaging);
+                } catch (error) {
+                    console.error('Error initializing Firebase:', error);
+                    reject(error);
+                }
+            });
+        }
 
         // PWA Install functionality
         let deferredPrompt;
@@ -1166,9 +1245,14 @@
             showToast('YUKI berhasil diinstall! Cek desktop atau home screen Anda 🚀', 'success');
         });
 
-        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz_Ab__bbSpHyMc__KsW2c5hVjkCBOKiEE9P2Pf789noK46EtOwuGIuhuS68wyHQfnS/exec';
+        // Initialize YukiApp - Check if already exists
+        function createYukiApp() {
+            if (window.YukiApp) {
+                console.log('YukiApp already exists, skipping initialization');
+                return window.YukiApp;
+            }
 
-        window.YukiApp = (function () {
+            const YukiApp = (function () {
             'use strict';
             const CONFIG = {
                 TASKS_PER_PAGE: 10,
@@ -1177,7 +1261,6 @@
                 CUTOFF_HOUR: 16
             };
 
-            // ADD this to your state object
             let state = {
                 tasks: [],
                 currentPage: 1,
@@ -1190,52 +1273,39 @@
                 notificationPermission: 'default',
                 firebaseStatus: 'loading',
                 fcmToken: null,
-                swRegistration: null // ADD THIS LINE
+                swRegistration: null
             };
-
-            // Firebase Setup for GitHub Pages
-            // COMPLETE FIREBASE SECTION REPLACEMENT
-            // Replace the entire setupFirebaseForGitHubPages function and requestNotificationPermission function in your code
 
             // Firebase Setup for GitHub Pages - FIXED VERSION
             async function setupFirebaseForGitHubPages() {
                 console.log('🔥 Setting up Firebase for GitHub Pages...');
                 updateFirebaseStatus('loading');
-
+                
                 try {
                     if ('serviceWorker' in navigator) {
                         console.log('📋 Registering service worker at /yuki/firebase-messaging-sw.js with scope /yuki/');
-
-                        // Register service worker
+                        
                         const registration = await navigator.serviceWorker.register('/yuki/firebase-messaging-sw.js', {
                             scope: '/yuki/'
                         });
                         console.log('✅ Service Worker registered:', registration.scope);
 
-                        // Wait for service worker to be ready
                         await navigator.serviceWorker.ready;
 
-                        // Set up foreground message handler - MOVED HERE
+                        // Set up foreground message handler - only show toast, no manual notification
                         messaging.onMessage((payload) => {
                             console.log('📨 Foreground message received:', payload);
                             const { title, body } = payload.notification || {};
-                            if (Notification.permission === 'granted') {
-                                new Notification(title || 'YUKI Reminder', {
-                                    body: body || 'You have a task reminder',
-                                    icon: '/yuki/icon.png',
-                                    tag: 'yuki-task-reminder'
-                                });
-                            }
+                            
+                            // Only show toast in app, let service worker handle OS notifications
                             showToast(`${title}: ${body}`, 'info');
                         });
 
-                        // Store registration for later use
                         state.swRegistration = registration;
-
                         updateFirebaseStatus('connected');
                         console.log('✅ Firebase messaging setup completed');
                         return registration;
-
+                        
                     } else {
                         throw new Error('Service Worker not supported');
                     }
@@ -1247,7 +1317,6 @@
                 }
             }
 
-            // FIXED requestNotificationPermission function
             async function requestNotificationPermission() {
                 try {
                     console.log('🔔 Requesting notification permission...');
@@ -1260,15 +1329,12 @@
 
                         if (state.firebaseStatus === 'connected') {
                             try {
-                                // Get service worker registration
                                 const registration = state.swRegistration || await navigator.serviceWorker.getRegistration('/yuki/');
-
-                                // FIXED: Use getToken with proper options
+                                
                                 const tokenOptions = {
                                     vapidKey: 'BJvQG9rKPVv6wPv4KmlTWGg7ndDsXoY1gotUjxvw4pEYbWmukouLBuM75P4c1khwRPsH6vkazWj-h8TLUVJMuB0'
                                 };
-
-                                // Add service worker registration if available
+                                
                                 if (registration) {
                                     tokenOptions.serviceWorkerRegistration = registration;
                                     console.log('📋 Using service worker registration for token');
@@ -1278,7 +1344,7 @@
 
                                 if (token) {
                                     state.fcmToken = token;
-
+                                    
                                     // PROMINENT CONSOLE DISPLAY FOR TESTING
                                     console.log('%c========================================', 'color: #2383e2; font-size: 16px; font-weight: bold;');
                                     console.log('%c🔑 FCM TOKEN FOR TESTING:', 'color: #10b981; font-size: 14px; font-weight: bold;');
@@ -1289,7 +1355,6 @@
                                     console.log('%c🌐 Firebase Console: https://console.firebase.google.com/project/yuki-catatan-app/messaging', 'color: #6b7280; font-size: 10px;');
                                     console.log('%c========================================', 'color: #2383e2; font-size: 16px; font-weight: bold;');
 
-                                    // Also display in a copyable format
                                     console.log('Raw token (right-click to copy):');
                                     console.log(token);
 
@@ -1319,8 +1384,6 @@
                     updateNotificationStatus();
                 }
             }
-
-
 
             async function saveTokenToServer(token) {
                 try {
@@ -1710,6 +1773,95 @@
             return {
                 requestNotificationPermission: requestNotificationPermission,
 
+                // TEST NOTIFICATION FUNCTION - NEW!
+                testNotification: async function() {
+                    const testBtn = document.querySelector('.test-notification-btn');
+                    const testIcon = document.getElementById('test-icon');
+                    const testText = document.getElementById('test-text');
+                    
+                    // Check FCM token
+                    if (!state.fcmToken) {
+                        showToast('FCM Token not found. Enable notifications first!', 'error');
+                        return;
+                    }
+                    
+                    // Check notification permission
+                    if (Notification.permission !== 'granted') {
+                        showToast('Notification permission not granted. Enable notifications first!', 'warning');
+                        return;
+                    }
+                    
+                    // Loading state
+                    testBtn.disabled = true;
+                    testIcon.textContent = '⏳';
+                    testText.textContent = 'Sending...';
+                    
+                    try {
+                        console.log('🧪 Testing OAuth2 notification with token:', state.fcmToken);
+                        console.log('📱 Device:', navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop');
+                        
+                        // Call Apps Script with OAuth2 endpoint
+                        const result = await apiCall('sendTestNotification', {
+                            fcmToken: state.fcmToken,
+                            title: 'YUKI Test Notification 🧪',
+                            body: `Test from ${navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop'} device at ${new Date().toLocaleTimeString()}`,
+                            data: JSON.stringify({
+                                test: true,
+                                device: navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop',
+                                timestamp: new Date().toISOString(),
+                                url: window.location.href
+                            })
+                        });
+                        
+                        if (result.success) {
+                            showToast('Test notification sent! Check your notifications 🔔', 'success');
+                            console.log('✅ Test notification sent successfully');
+                            console.log('📝 Response:', result);
+                            
+                            // Show device-specific message
+                            const deviceType = navigator.userAgent.includes('Mobile') ? 'mobile' : 'desktop';
+                            setTimeout(() => {
+                                showToast(`Notification sent to ${deviceType} device. Check other devices too!`, 'info');
+                            }, 2000);
+                            
+                        } else {
+                            showToast('Failed to send test notification: ' + result.message, 'error');
+                            console.error('❌ Test notification failed:', result.message);
+                        }
+                        
+                    } catch (error) {
+                        console.error('❌ Error sending test notification:', error);
+                        showToast('Error sending test notification: ' + error.message, 'error');
+                    } finally {
+                        // Reset button state after 2 seconds
+                        setTimeout(() => {
+                            testBtn.disabled = false;
+                            testIcon.textContent = '🧪';
+                            testText.textContent = 'Test Notification';
+                        }, 2000);
+                    }
+                },
+
+                // DEBUG FUNCTION - NEW!
+                debugNotificationInfo: function() {
+                    console.log('🔍 YUKI Notification Debug Info:');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log('📱 Device:', navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop');
+                    console.log('🌐 User Agent:', navigator.userAgent);
+                    console.log('🔔 Notification Permission:', Notification.permission);
+                    console.log('🔥 Firebase Status:', state.firebaseStatus);
+                    console.log('🔑 FCM Token Available:', !!state.fcmToken);
+                    console.log('🛠️ Service Worker Status:', navigator.serviceWorker.controller ? 'Active' : 'Not Active');
+                    console.log('📍 Current URL:', window.location.href);
+                    console.log('⚡ Connection Status:', state.connectionStatus);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    
+                    if (state.fcmToken) {
+                        console.log('🔑 FCM Token for manual testing:');
+                        console.log(state.fcmToken);
+                    }
+                },
+
                 showSection: function (sectionId) {
                     const sections = document.querySelectorAll('.section');
                     sections.forEach(section => section.classList.remove('active'));
@@ -1997,6 +2149,7 @@
 🔥 Firebase Cloud Messaging integration
 🚀 Real-time push notifications
 📱 PWA with GitHub Pages support
+🧪 Test notification button added
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Embrace the way of Kaizen! 改善
                     `);
@@ -2027,9 +2180,9 @@ Embrace the way of Kaizen! 改善
                         this.setupFormHandler();
                         this.setupKeyboardShortcuts();
 
-                        console.log('✅ YUKI v2.0 with Firebase initialized successfully');
+                        console.log('✅ YUKI v2.0 with Firebase and Test Button initialized successfully');
                         setTimeout(() => {
-                            showToast('YUKI v2.0 with Firebase Ready! 🌸🔥📱', 'success');
+                            showToast('YUKI v2.0 Ready! Click Test Notification button to test 🧪', 'success');
                         }, 1000);
                     } catch (error) {
                         console.error('❌ Error during initialization:', error);
@@ -2142,8 +2295,84 @@ Embrace the way of Kaizen! 改善
                         }
                     });
                 }
-            };
-        })();
+                };
+            })();
+
+            window.YukiApp = YukiApp;
+            return YukiApp;
+        }
+
+        // Main initialization function
+        async function initializeApp() {
+            try {
+                console.log(`
+🌸 Welcome to YUKI (雪) - PRODUCTION v2.0 with Firebase
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✨ Production task management with notifications
+🔥 Firebase Cloud Messaging integration
+🚀 Real-time push notifications
+📱 PWA with GitHub Pages support
+🧪 Test notification button added
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Embrace the way of Kaizen! 改善
+                `);
+
+                // Check if Firebase SDK is available
+                if (typeof firebase === 'undefined') {
+                    throw new Error('Firebase SDK not loaded. Please check your internet connection.');
+                }
+
+                // Initialize Firebase
+                await initializeFirebase();
+                console.log('✅ Firebase initialized');
+
+                // Initialize YukiApp
+                const app = createYukiApp();
+                console.log('✅ YukiApp created');
+
+                // Initialize the app
+                await app.init();
+                console.log('✅ YUKI initialized successfully');
+
+                // Handle PWA shortcuts
+                handlePWAShortcuts();
+
+                // Show ready message
+                setTimeout(() => {
+                    if (window.YukiApp && window.YukiApp.showToast) {
+                        window.YukiApp.showToast('YUKI v2.0 Ready! Click Test Notification button to test 🧪', 'success');
+                    }
+                }, 1000);
+
+            } catch (error) {
+                console.error('❌ Error during app initialization:', error);
+                
+                // Show error message to user
+                setTimeout(() => {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = `
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        background: #ef4444;
+                        color: white;
+                        padding: 16px 20px;
+                        border-radius: 8px;
+                        z-index: 10000;
+                        font-size: 14px;
+                        max-width: 400px;
+                    `;
+                    errorDiv.innerHTML = `
+                        <strong>❌ Error Loading YUKI</strong><br>
+                        ${error.message}<br>
+                        <small>Please refresh the page or check your connection.</small>
+                    `;
+                    document.body.appendChild(errorDiv);
+                    
+                    setTimeout(() => errorDiv.remove(), 10000);
+                }, 100);
+            }
+        }
 
         function handlePWAShortcuts() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -2152,31 +2381,60 @@ Embrace the way of Kaizen! 改善
             if (action === 'add-task') {
                 console.log('📱 PWA Shortcut: Opening Add Task');
                 setTimeout(() => {
-                    YukiApp.showSection('add-task');
+                    if (window.YukiApp) {
+                        window.YukiApp.showSection('add-task');
+                    }
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }, 500);
             } else if (action === 'view-tasks') {
                 console.log('📱 PWA Shortcut: Opening View Tasks');
                 setTimeout(() => {
-                    YukiApp.showSection('view-tasks');
+                    if (window.YukiApp) {
+                        window.YukiApp.showSection('view-tasks');
+                    }
                     window.history.replaceState({}, document.title, window.location.pathname);
                 }, 500);
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function () {
-            YukiApp.init();
-            handlePWAShortcuts();
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+
+        // Global error handler
+        window.addEventListener('error', function(event) {
+            console.error('Global error caught:', event.error);
+            
+            if (event.error.message.includes('firebase is not defined')) {
+                console.error('Firebase SDK failed to load. Check your internet connection.');
+            }
+            
+            if (event.error.message.includes('YukiApp is not defined')) {
+                console.error('YukiApp failed to initialize. Attempting to reinitialize...');
+                setTimeout(() => {
+                    try {
+                        createYukiApp();
+                    } catch (e) {
+                        console.error('Failed to reinitialize YukiApp:', e);
+                    }
+                }, 1000);
+            }
         });
 
+        // Console info for developers
         console.log(`
 🔧 YUKI v2.0 Production with Firebase Developer Info:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📖 Edit functions: YukiApp.editTaskName(id), YukiApp.toggleComplete(id), YukiApp.deleteTask(id)
 🔔 Notifications: YukiApp.requestNotificationPermission()
+🧪 Test Notifications: YukiApp.testNotification()
+🔍 Debug Info: YukiApp.debugNotificationInfo()
 🎨 Theme toggle: YukiApp.toggleTheme()
 📊 Data access: YukiApp (namespace object)
-🌸 Production with Firebase integration for GitHub Pages!
+🌸 Production with Firebase integration and test button for GitHub Pages!
         `);
     </script>
 </body>
