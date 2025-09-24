@@ -3,12 +3,12 @@
   "short_name": "YUKI",
   "description": "Production task management with smart notifications and continuous improvement",
   "version": "2.0.0",
-  "start_url": "/",
+  "start_url": "/yuki/",
   "display": "standalone",
   "background_color": "#191919",
   "theme_color": "#2383e2",
   "orientation": "portrait-primary",
-  "scope": "/",
+  "scope": "/yuki/",
   "lang": "id",
   "dir": "ltr",
   "categories": ["productivity", "business", "utilities"],
@@ -20,14 +20,14 @@
       "purpose": "any maskable"
     },
     {
-      "src": "icon.png",
+      "src": "icon.png", 
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
       "src": "icon.png",
-      "sizes": "128x128",
+      "sizes": "128x128", 
       "type": "image/png",
       "purpose": "any maskable"
     },
@@ -71,7 +71,7 @@
       "label": "YUKI Mobile Interface"
     },
     {
-      "src": "screenshot-desktop-1.png",
+      "src": "screenshot-desktop-1.png", 
       "sizes": "1280x800",
       "type": "image/png",
       "form_factor": "wide",
@@ -83,7 +83,7 @@
       "name": "Add Task",
       "short_name": "Add Task",
       "description": "Quickly add a new task",
-      "url": "/?action=add-task",
+      "url": "/yuki/?action=add-task",
       "icons": [
         {
           "src": "icon.png",
@@ -93,13 +93,13 @@
       ]
     },
     {
-      "name": "View Tasks",
+      "name": "View Tasks", 
       "short_name": "View Tasks",
       "description": "View all your tasks",
-      "url": "/?action=view-tasks",
+      "url": "/yuki/?action=view-tasks",
       "icons": [
         {
-          "src": "icon.png",
+          "src": "icon.png", 
           "sizes": "96x96",
           "type": "image/png"
         }
